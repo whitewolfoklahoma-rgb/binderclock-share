@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BinderClock — COI Tracking &amp; Chasing (Demo)</title>
+<style>
+  :root{
+    --navy:#12263a; --navy2:#1b3a55; --ink:#1c2733; --mut:#5b6b7a; --line:#d9e1e8;
+    --bg:#eef2f5; --card:#ffffff; --accent:#0f7a4d; --accent2:#0b5cad;
+    --red:#c0392b; --redbg:#fdecea; --amber:#a86e00; --amberbg:#fdf3e0;
+    --green:#0f7a4d; --greenbg:#e7f5ee; --greybg:#eef1f4;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); font-size:14px;}
+  header{background:var(--navy); color:#fff; padding:14px 28px; display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+  header .logo{font-size:20px; font-weight:700; letter-spacing:.3px;}
+  header .logo span{color:#7fd1a8;}
+  header .sub{color:#b9c9d6; font-size:12.5px;}
+  header .demo-badge{margin-left:auto; background:#f5b301; color:#231a00; font-weight:700; font-size:12px; padding:5px 12px; border-radius:20px; text-transform:uppercase; letter-spacing:.6px;}
+  .companybar{background:var(--navy2); color:#dbe7f1; padding:8px 28px; font-size:13px; display:flex; gap:24px; flex-wrap:wrap;}
+  .companybar b{color:#fff;}
+  nav{display:flex; gap:4px; background:#fff; border-bottom:1px solid var(--line); padding:0 20px; position:sticky; top:0; z-index:5; flex-wrap:wrap;}
+  nav button{background:none; border:none; border-bottom:3px solid transparent; padding:13px 16px; font-size:14px; font-weight:600; color:var(--mut); cursor:pointer; min-height:48px;}
+  nav button:hover{color:var(--ink);}
+  nav button.active{color:var(--navy); border-bottom-color:var(--accent);}
+  main{max-width:1180px; margin:0 auto; padding:24px 20px 40px;}
+  section.panel{display:none;}
+  section.panel.active{display:block;}
+  h2{font-size:18px; margin-bottom:4px; color:var(--navy);}
+  .pdesc{color:var(--mut); margin-bottom:18px; font-size:13px;}
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:22px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px 20px;}
+  .card .lbl{font-size:12px; text-transform:uppercase; letter-spacing:.7px; color:var(--mut); font-weight:700;}
+  .card .big{font-size:28px; font-weight:800; margin:6px 0 2px; color:var(--navy);}
+  .card .note{font-size:12.5px; color:var(--mut);}
+  .card.risk .big{color:var(--red);}
+  .card.warn .big{color:var(--amber);}
+  .card.good .big{color:var(--green);}
+  .riskbanner{background:var(--redbg); border:1px solid #f0c6c0; color:#7c2318; border-radius:10px; padding:14px 18px; margin-bottom:22px; font-size:13.5px;}
+  .riskbanner b{color:var(--red);}
+  .statstrip{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 20px; margin-bottom:22px;}
+  .statstrip h3{font-size:14px; color:var(--navy); margin-bottom:8px;}
+  .statstrip li{margin-left:18px; margin-bottom:4px; color:var(--ink); font-size:13.5px;}
+  .statstrip .clock-red{color:var(--red); font-weight:700;}
+  .statstrip .clock-amber{color:var(--amber); font-weight:700;}
+  table{width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  th{background:var(--greybg); text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--mut); padding:10px 12px;}
+  td{padding:10px 12px; border-top:1px solid var(--line); vertical-align:top; font-size:13.5px;}
+  .pill{display:inline-block; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:700; white-space:nowrap;}
+  .pill.compliant{background:var(--greenbg); color:var(--green);}
+  .pill.expiring{background:var(--amberbg); color:var(--amber);}
+  .pill.expired{background:var(--redbg); color:var(--red);}
+  .pill.deficient{background:#f3e8fd; color:#6a1b9a;}
+  .pill.missing{background:#eceff1; color:#37474f;}
+  .btn{background:var(--accent); color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:13.5px; font-weight:700; cursor:pointer; min-height:44px;}
+  .btn:hover{background:#0b6340;}
+  .btn:disabled{background:#b9c9d6; cursor:not-allowed;}
+  .btn.secondary{background:#fff; color:var(--navy); border:1px solid var(--line);}
+  .btn.secondary:hover{background:var(--greybg);}
+  .btn.small{padding:6px 10px; min-height:36px; font-size:12.5px; margin:2px 2px 2px 0;}
+  .btn.blue{background:var(--accent2);}
+  .btn.blue:hover{background:#094f86;}
+  .btn.danger{background:#fff; color:var(--red); border:1px solid #f0c6c0;}
+  .btn.danger:hover{background:var(--redbg);}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;}
+  .toolbar .spacer{flex:1;}
+  input[type=text], input[type=number], input[type=email], input[type=date], select, textarea{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-size:14px; font-family:inherit; background:#fff;}
+  textarea{resize:vertical;}
+  label.flabel{display:block; font-size:12.5px; font-weight:700; color:var(--mut); margin:0 0 6px;}
+  .field{margin-bottom:14px;}
+  .fieldrow{display:flex; gap:8px; align-items:flex-start;}
+  .fieldrow .grow{flex:1;}
+  .micbtn{flex:0 0 auto; width:48px; height:48px; border-radius:8px; border:1px solid var(--line); background:#fff; font-size:20px; cursor:pointer;}
+  .micbtn:hover{background:var(--greybg);}
+  .formcard{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px; max-width:820px; margin-bottom:22px;}
+  .formcard h3{font-size:15px; color:var(--navy); margin-bottom:12px;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:0 16px;}
+  .err{background:var(--redbg); color:#7c2318; border:1px solid #f0c6c0; border-radius:8px; padding:10px 14px; margin-bottom:12px; display:none; font-size:13.5px;}
+  .okmsg{background:var(--greenbg); color:#0b5340; border:1px solid #bfe3cf; border-radius:8px; padding:10px 14px; margin-bottom:12px; display:none; font-size:13.5px;}
+  .chasecard{background:var(--card); border:1px solid var(--line); border-left:5px solid var(--red); border-radius:10px; padding:16px 20px; margin-bottom:16px;}
+  .chasecard.amber{border-left-color:var(--amber);}
+  .chasecard.grey{border-left-color:#607d8b;}
+  .chasecard h3{font-size:15px; color:var(--navy); margin-bottom:4px;}
+  .chasecard .meta{color:var(--mut); font-size:12.5px; margin-bottom:10px;}
+  .chasecard .defs{margin:0 0 10px 18px; font-size:13.5px;}
+  .magiclink{background:var(--greybg); border:1px dashed var(--mut); border-radius:8px; padding:10px 12px; font-size:12.5px; word-break:break-all; margin:10px 0;}
+  .scorecard{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 20px; margin-top:16px; display:none;}
+  .scorecard li{margin-left:18px; margin-bottom:4px; font-size:13.5px;}
+  .scorecard .pass{color:var(--green); font-weight:700;}
+  .scorecard .fail{color:var(--red); font-weight:700;}
+  .pricegrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; margin-bottom:22px;}
+  .pricecard{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:22px;}
+  .pricecard .price{font-size:34px; font-weight:800; color:var(--navy); margin:8px 0;}
+  .pricecard li{margin-left:18px; margin-bottom:5px; font-size:13.5px;}
+  .checkrow{display:flex; gap:10px; align-items:flex-start; margin:14px 0;}
+  .checkrow input{width:20px; height:20px; margin-top:2px; flex:0 0 auto;}
+  details{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin-bottom:10px;}
+  details summary{font-weight:700; color:var(--navy); cursor:pointer; font-size:14.5px;}
+  details p{margin-top:8px; color:var(--ink); font-size:13.5px;}
+  .projcard{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px 20px; margin-bottom:16px;}
+  .projcard h3{font-size:15.5px; color:var(--navy);}
+  .projcard .meta{color:var(--mut); font-size:12.5px; margin-bottom:10px;}
+  .projcard table{border:none;}
+  .assignrow{display:flex; gap:8px; align-items:center; padding:6px 0; border-top:1px solid var(--line); font-size:13.5px;}
+  .assignrow input{width:18px; height:18px; flex:0 0 auto;}
+  footer{border-top:1px solid var(--line); padding:18px 28px; color:var(--mut); font-size:12.5px; max-width:1180px; margin:0 auto;}
+  #toast{position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:12px 20px; border-radius:10px; font-size:14px; display:none; z-index:50; max-width:90vw; text-align:center;}
+  .empty{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:28px; text-align:center; color:var(--mut);}
+  #printArea{display:none;}
+  @media (max-width:640px){
+    .grid2{grid-template-columns:1fr;}
+    td,th{padding:8px;}
+    .tablewrap{overflow-x:auto;}
+  }
+  @media print{
+    header, nav, main, footer, #toast{display:none !important;}
+    #printArea{display:block; font-size:12px;}
+    #printArea table{border:1px solid #999; width:100%; border-collapse:collapse;}
+    #printArea th, #printArea td{border:1px solid #ccc; padding:6px 8px;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo">Binder<span>Clock</span></div>
+    <div class="sub">COI tracking &amp; chasing — every sub's insurance checked, clocked, and chased before it lapses.</div>
+  </div>
+  <div class="demo-badge">Demo — fictional sample data</div>
+</header>
+<div class="companybar">
+  <div>Company: <b>Lakeside Builders LLC</b> (fictional demo company)</div>
+  <div>Subs &amp; vendors tracked: <b id="barVendorCount">14</b></div>
+  <div>Today: <b id="barToday"></b></div>
+</div>
+<nav id="mainNav">
+  <button data-view="dashboard" class="active">Dashboard</button>
+  <button data-view="vendors">Vendors</button>
+  <button data-view="intake">Cert Intake</button>
+  <button data-view="chase">Chase Queue</button>
+  <button data-view="projects">Projects</button>
+  <button data-view="pricing">Pricing &amp; Pilot</button>
+  <button data-view="help">Help</button>
+</nav>
+<main>
+<!-- ============ DASHBOARD ============ -->
+<section class="panel active" id="view-dashboard">
+  <h2>Who is covered, who is not — right now</h2>
+  <p class="pdesc">Every subcontractor's certificates of insurance, checked against your requirements and clocked to their earliest expiration. Anything expired, missing, or short turns red here — not in a spreadsheet nobody opens on a Friday afternoon.</p>
+  <div class="riskbanner" id="riskBanner"></div>
+  <div class="cards" id="statCards">
+    <div class="card good"><div class="lbl">Compliance</div><div class="big" id="statPct">–</div><div class="note">of vendors fully compliant</div></div>
+    <div class="card good"><div class="lbl">Compliant vendors</div><div class="big" id="statCompliant">–</div><div class="note">cleared to be on site</div></div>
+    <div class="card warn"><div class="lbl">Expiring in 30 days</div><div class="big" id="statExpiring">–</div><div class="note">renewal chase already due</div></div>
+    <div class="card risk"><div class="lbl">Expired or missing</div><div class="big" id="statExpired">–</div><div class="note">do not admit to site</div></div>
+    <div class="card"><div class="lbl">Deficient certs</div><div class="big" id="statDeficient">–</div><div class="note">limits low or endorsements missing</div></div>
+  </div>
+  <div class="statstrip">
+    <h3>⏰ Expiring in the next 30 days</h3>
+    <ul id="expiringList"></ul>
+  </div>
+  <div class="statstrip">
+    <h3>⛔ Can't step on site Monday</h3>
+    <ul id="blockedList"></ul>
+  </div>
+  <div class="toolbar">
+    <button class="btn" id="dashVendorsBtn">See the vendor roster</button>
+    <button class="btn blue" id="dashChaseBtn">Work the chase queue</button>
+    <button class="btn secondary" id="dashIntakeBtn">Log a certificate</button>
+    <span class="spacer"></span>
+    <button class="btn secondary" id="exportCsvBtn">Export audit packet (CSV)</button>
+    <button class="btn secondary" id="printPacketBtn">Print audit packet</button>
+  </div>
+  <p class="pdesc">The audit packet is the one file an owner, GC, or insurance auditor asks for: every vendor, every policy, every expiration, and every gap — dated today.</p>
+</section>
+
+<!-- ============ VENDORS ============ -->
+<section class="panel" id="view-vendors">
+  <h2>Vendor roster</h2>
+  <p class="pdesc">Subs and vendors, their insurance agents, and the status of their paperwork. Import your existing spreadsheet list, or add vendors one at a time.</p>
+
+  <div class="formcard">
+    <h3>Your requirements — every certificate is checked against these</h3>
+    <div class="grid2">
+      <div class="field"><label class="flabel" for="reqGlOcc">General liability — each occurrence minimum ($)</label><input type="number" id="reqGlOcc" min="0" step="50000"></div>
+      <div class="field"><label class="flabel" for="reqGlAgg">General liability — general aggregate minimum ($)</label><input type="number" id="reqGlAgg" min="0" step="50000"></div>
+      <div class="field"><label class="flabel" for="reqAuto">Auto liability minimum ($)</label><input type="number" id="reqAuto" min="0" step="50000"></div>
+      <div class="field"><label class="flabel" for="reqUmb">Umbrella minimum ($, 0 = not required)</label><input type="number" id="reqUmb" min="0" step="50000"></div>
+    </div>
+    <div class="checkrow"><input type="checkbox" id="reqWc"><label for="reqWc">Workers' compensation certificate required from every vendor</label></div>
+    <div class="checkrow"><input type="checkbox" id="reqAi"><label for="reqAi">We must be named as <b>additional insured</b> on the general liability policy</label></div>
+    <div class="checkrow"><input type="checkbox" id="reqWaiver"><label for="reqWaiver"><b>Waiver of subrogation</b> required in our favor</label></div>
+    <button class="btn" id="reqSaveBtn">Save requirements &amp; re-check everyone</button>
+  </div>
+
+  <div class="toolbar">
+    <div style="flex:1; min-width:200px;">
+      <div class="fieldrow"><div class="grow"><input type="text" id="searchVendors" placeholder="Search vendors or trades…"></div><button class="micbtn" data-mic="searchVendors" title="Voice entry" aria-label="Voice search">🎤</button></div>
+    </div>
+    <select id="filterStatus" style="width:auto;">
+      <option value="all">All statuses</option>
+      <option value="compliant">Compliant</option>
+      <option value="expiring">Expiring ≤30 days</option>
+      <option value="expired">Expired</option>
+      <option value="deficient">Deficient</option>
+      <option value="missing">Missing cert</option>
+    </select>
+    <label class="btn secondary" for="csvFile" style="display:inline-flex; align-items:center;">Import roster (CSV)</label>
+    <input type="file" id="csvFile" accept=".csv,text/csv" style="display:none;">
+  </div>
+  <div class="okmsg" id="importMsg"></div>
+  <div class="err" id="importErr"></div>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Vendor</th><th>Trade</th><th>Status</th><th>Earliest expiry</th><th>Agent</th><th>Actions</th></tr></thead>
+    <tbody id="vendorBody"></tbody>
+  </table>
+  </div>
+  <div class="empty" id="vendorEmpty" style="display:none;">No vendors match. Clear the search or filter, or add the vendor below.</div>
+
+  <div class="formcard" style="margin-top:22px;">
+    <h3>Add a vendor</h3>
+    <div class="err" id="nvErr"></div>
+    <div class="grid2">
+      <div class="field"><label class="flabel" for="nvName">Company name *</label><div class="fieldrow"><div class="grow"><input type="text" id="nvName" placeholder="e.g. Sooner Septic Service"></div><button class="micbtn" data-mic="nvName" title="Voice entry" aria-label="Voice entry for company name">🎤</button></div></div>
+      <div class="field"><label class="flabel" for="nvTrade">Trade</label>
+        <select id="nvTrade"><option>Plumbing</option><option>Electrical</option><option>Roofing</option><option>HVAC</option><option>Concrete</option><option>Framing</option><option>Painting</option><option>Drywall</option><option>Excavation</option><option>Flooring</option><option>Glass &amp; Glazing</option><option>Masonry</option><option>Landscaping</option><option>Steel Erection</option><option>Other</option></select></div>
+      <div class="field"><label class="flabel" for="nvContact">Contact name</label><div class="fieldrow"><div class="grow"><input type="text" id="nvContact" placeholder="e.g. Dana Ruiz"></div><button class="micbtn" data-mic="nvContact" title="Voice entry" aria-label="Voice entry for contact name">🎤</button></div></div>
+      <div class="field"><label class="flabel" for="nvEmail">Contact email</label><input type="email" id="nvEmail" placeholder="office@company.com"></div>
+      <div class="field"><label class="flabel" for="nvAgent">Insurance agent</label><div class="fieldrow"><div class="grow"><input type="text" id="nvAgent" placeholder="e.g. Miller Insurance Group"></div><button class="micbtn" data-mic="nvAgent" title="Voice entry" aria-label="Voice entry for agent">🎤</button></div></div>
+      <div class="field"><label class="flabel" for="nvAgentEmail">Agent email</label><input type="email" id="nvAgentEmail" placeholder="certs@agency.com"></div>
+    </div>
+    <button class="btn" id="nvAddBtn">Add vendor</button>
+  </div>
+</section>
+
+<!-- ============ CERT INTAKE ============ -->
+<section class="panel" id="view-intake">
+  <h2>Log a certificate</h2>
+  <p class="pdesc">In the live product, the sub or their agent uploads the cert through a no-login link and the fields fill themselves from the document — you just confirm them. In this demo, one tap fills a sample certificate, or type the fields yourself. Either way, the moment you save, the cert is scored against your requirements.</p>
+  <div class="formcard">
+    <div class="err" id="inErr"></div>
+    <div class="field"><label class="flabel" for="inVendor">Vendor this certificate belongs to *</label><select id="inVendor"></select></div>
+    <div class="toolbar"><button class="btn blue" id="inDemoFill" type="button">Fill a sample certificate for me</button><span class="note" style="color:var(--mut); font-size:12.5px;">Simulates the document read — sample values, nothing real.</span></div>
+    <div class="grid2">
+      <div class="field"><label class="flabel" for="inInsurer">Insurance company *</label><div class="fieldrow"><div class="grow"><input type="text" id="inInsurer" placeholder="e.g. Hartford Mutual"></div><button class="micbtn" data-mic="inInsurer" title="Voice entry" aria-label="Voice entry for insurer">🎤</button></div></div>
+      <div class="field"><label class="flabel" for="inPolicy">Policy number</label><div class="fieldrow"><div class="grow"><input type="text" id="inPolicy" placeholder="e.g. GL-2026-8841"></div><button class="micbtn" data-mic="inPolicy" title="Voice entry" aria-label="Voice entry for policy number">🎤</button></div></div>
+      <div class="field"><label class="flabel" for="inGlOcc">GL — each occurrence limit ($)</label><input type="number" id="inGlOcc" min="0" step="50000" placeholder="1000000"></div>
+      <div class="field"><label class="flabel" for="inGlAgg">GL — general aggregate limit ($)</label><input type="number" id="inGlAgg" min="0" step="50000" placeholder="2000000"></div>
+      <div class="field"><label class="flabel" for="inGlExp">GL expiration date</label><input type="date" id="inGlExp"></div>
+      <div class="field"><label class="flabel" for="inAutoLimit">Auto liability limit ($)</label><input type="number" id="inAutoLimit" min="0" step="50000" placeholder="1000000"></div>
+      <div class="field"><label class="flabel" for="inAutoExp">Auto expiration date</label><input type="date" id="inAutoExp"></div>
+      <div class="field"><label class="flabel" for="inWcExp">Workers' comp expiration date</label><input type="date" id="inWcExp"></div>
+      <div class="field"><label class="flabel" for="inUmbLimit">Umbrella limit ($, blank if none)</label><input type="number" id="inUmbLimit" min="0" step="50000"></div>
+      <div class="field"><label class="flabel" for="inUmbExp">Umbrella expiration date</label><input type="date" id="inUmbExp"></div>
+    </div>
+    <div class="checkrow"><input type="checkbox" id="inAi"><label for="inAi">Certificate names us as <b>additional insured</b> (endorsement on file)</label></div>
+    <div class="checkrow"><input type="checkbox" id="inWaiver"><label for="inWaiver">Certificate includes a <b>waiver of subrogation</b> in our favor</label></div>
+    <div class="checkrow"><input type="checkbox" id="inHolder"><label for="inHolder">Certificate holder name matches our legal name exactly</label></div>
+    <button class="btn" id="inSaveBtn">Save certificate &amp; check it</button>
+    <div class="scorecard" id="inScore"></div>
+  </div>
+</section>
+
+<!-- ============ CHASE QUEUE ============ -->
+<section class="panel" id="view-chase">
+  <h2>Chase queue</h2>
+  <p class="pdesc">Every vendor who owes you paperwork, in one queue — with the email already written. BinderClock works a 30 / 14 / 7 / 2-day ladder before each expiration and chases the <b>insurance agent</b>, not just the sub, because the agent is the one who can actually issue the cert. In this demo nothing is sent: copy the email into your own mail, or mark the chase done and the clock moves on.</p>
+  <div class="statstrip"><h3 id="chaseCount">–</h3><p style="font-size:13px; color:var(--mut);">Each card names exactly what is wrong, in plain English, and the no-login upload link the agent uses to fix it — no account, no portal, no password.</p></div>
+  <div id="chaseWrap"></div>
+  <div class="empty" id="chaseEmpty" style="display:none;">🎉 Everyone is compliant. The chase queue is empty.</div>
+</section>
+
+<!-- ============ PROJECTS ============ -->
+<section class="panel" id="view-projects">
+  <h2>Projects — who is cleared for each site</h2>
+  <p class="pdesc">The Monday-morning list: for every job, which subs can step on site and which get turned away at the gate until their paperwork lands. Tick or untick a sub to change a project's roster — every view updates at once.</p>
+  <div id="projectWrap"></div>
+</section>
+
+<!-- ============ PRICING & PILOT ============ -->
+<section class="panel" id="view-pricing">
+  <h2>Pricing</h2>
+  <p class="pdesc">One flat price. No per-vendor fees, no per-seat traps, no demo call with a salesperson — the enterprise trackers start at a $7,500 annual minimum; BinderClock is priced for the office manager who actually does this job.</p>
+  <div class="pricegrid">
+    <div class="pricecard">
+      <div class="lbl" style="font-size:12px; text-transform:uppercase; letter-spacing:.7px; color:var(--mut); font-weight:700;">BinderClock</div>
+      <div class="price">$99<span style="font-size:16px; color:var(--mut);">/mo flat</span></div>
+      <ul>
+        <li><b>Unlimited</b> vendors, subs, and projects</li>
+        <li>Every cert checked against <b>your</b> requirements — limits, endorsements, holder name</li>
+        <li>Expiry clocks with the 30 / 14 / 7 / 2-day chase ladder to the agent</li>
+        <li>No-login upload links — subs and agents never create an account</li>
+        <li>Per-project "cleared for site" lists and one-click audit packets</li>
+        <li>Your data lives on your device in this edition; export anytime</li>
+      </ul>
+    </div>
+    <div class="pricecard">
+      <div class="lbl" style="font-size:12px; text-transform:uppercase; letter-spacing:.7px; color:var(--mut); font-weight:700;">Start here — Catch-Up Audit pilot</div>
+      <div class="price">$249<span style="font-size:16px; color:var(--mut);"> one-time</span></div>
+      <ul>
+        <li>Send us your sub list, in any shape — spreadsheet, photos, a shoebox of PDFs</li>
+        <li>We load every vendor and chase every missing or expired cert for <b>30 days</b></li>
+        <li>You get back a clean compliance log: who is covered, who is not, and the proof</li>
+        <li>If your roster can't be loaded, the $249 comes back — no half-done audits</li>
+        <li>The pilot credit applies in full if you continue at $99/mo</li>
+      </ul>
+    </div>
+  </div>
+  <div class="formcard">
+    <h3>Request the $249 Catch-Up Audit</h3>
+    <div class="grid2">
+      <div class="field"><label class="flabel" for="pilotName">Your name</label><div class="fieldrow"><div class="grow"><input type="text" id="pilotName" placeholder="e.g. Jamie Cole"></div><button class="micbtn" data-mic="pilotName" title="Voice entry" aria-label="Voice entry for your name">🎤</button></div></div>
+      <div class="field"><label class="flabel" for="pilotCompany">Company</label><div class="fieldrow"><div class="grow"><input type="text" id="pilotCompany" placeholder="e.g. Cole Construction LLC"></div><button class="micbtn" data-mic="pilotCompany" title="Voice entry" aria-label="Voice entry for company">🎤</button></div></div>
+      <div class="field"><label class="flabel" for="pilotEmail">Email</label><input type="email" id="pilotEmail" placeholder="you@company.com"></div>
+      <div class="field"><label class="flabel" for="pilotSubs">Roughly how many subs/vendors?</label><input type="number" id="pilotSubs" min="0" placeholder="e.g. 25"></div>
+    </div>
+    <div class="checkrow"><input type="checkbox" id="pilotTerms"><label for="pilotTerms">I understand this is a request for the $249 Catch-Up Audit pilot: BinderClock prepares the chase and the compliance log from the roster I provide, I stay the account holder, and nothing is billed until we confirm the pilot by email.</label></div>
+    <button class="btn" id="pilotSubmit" disabled>Send pilot request</button>
+    <p style="font-size:12.5px; color:var(--mut); margin-top:10px;">Sending opens your own mail app, addressed to our back office. Nothing is charged and nothing is sent until you press send there.</p>
+  </div>
+</section>
+
+<!-- ============ HELP ============ -->
+<section class="panel" id="view-help">
+  <h2>Help</h2>
+  <p class="pdesc">The short version of everything BinderClock does.</p>
+  <details><summary>How do I add my subs and vendors?</summary><p>On the <b>Vendors</b> tab, use the "Add a vendor" form — name and trade are enough to start. If your list already lives in a spreadsheet, save it as a CSV with the columns <i>name, trade, contact, email, agent, agent_email</i> and use <b>Import roster (CSV)</b>; vendors already on the list are skipped, never duplicated.</p></details>
+  <details><summary>How does a certificate get checked?</summary><p>On the <b>Cert Intake</b> tab, pick the vendor and enter what the certificate says (in the live product the fields fill from the uploaded document). The moment you save, BinderClock scores the cert against the requirements on the Vendors tab — limits, additional insured, waiver of subrogation, holder name, and every expiration date — and shows you the checklist in plain English.</p></details>
+  <details><summary>What do the statuses mean?</summary><p><b>Compliant</b> — everything required is on file and current. <b>Expiring</b> — compliant today, but a policy ends within 30 days. <b>Expired</b> — at least one required policy has lapsed. <b>Deficient</b> — paperwork is on file but something is short: a limit below your minimum, a missing endorsement, a wrong holder name. <b>Missing</b> — no certificate on file at all.</p></details>
+  <details><summary>How does the chasing work?</summary><p>The <b>Chase Queue</b> lists everyone who owes you paperwork, worst first, with the email already written — addressed to the insurance agent (who can issue the cert) with the sub copied, and a no-login upload link so nobody needs an account. The ladder runs at 30, 14, 7, and 2 days before an expiration, and daily once a policy has lapsed. Mark a chase done and the queue re-sorts itself.</p></details>
+  <details><summary>What is the audit packet?</summary><p>One dated file — CSV or print — listing every vendor, every policy line, every expiration, each vendor's status, and every open deficiency. It is the document an owner, GC, or insurance auditor asks for at renewal or after an incident. Export it from the Dashboard any time.</p></details>
+  <details><summary>Where does my data live? How do I back it up?</summary><p>In this demo edition, everything lives <b>on this device, in this browser</b> — no account, nothing uploaded. Export the audit packet CSV to keep a dated copy, and use Reset below to restore the fictional sample data or Clear to empty the app. Clearing your browser's site data erases the roster, so export before you do.</p></details>
+  <div class="toolbar" style="margin-top:16px;">
+    <a class="btn" id="emailUsBtn" href="mailto:whitewolfbackoffice@gmail.com?subject=BinderClock%20help%20%E2%80%94%20v0.1.1-demo&amp;body=Tell%20us%20what%20you%20were%20trying%20to%20do%20and%20what%20happened%3A%0A%0A">Email us</a>
+    <button class="btn secondary" id="resetDataBtn">Reset demo data</button>
+    <button class="btn danger" id="clearDataBtn">Clear demo data</button>
+  </div>
+  <p style="font-size:12.5px; color:var(--mut);">BinderClock organizes certificates and chases renewals. It is not insurance advice and does not interpret policies — your broker and your contracts decide what coverage to require.</p>
+</section>
+</main>
+<footer>
+  <div><b>BinderClock</b> — a White Wolf Tree Service LLC · Back-Office Services product. Questions or the pilot: whitewolfbackoffice@gmail.com</div>
+  <div style="margin-top:6px;">Demo build v0.1.1-demo · All companies, people, policies, and certificates shown are fictional sample data. Works offline; no account; your data stays on this device.</div>
+</footer>
+<div id="toast"></div>
+<div id="printArea"></div>
+
+<script>
+var VERSION = "v0.1.1-demo";
+var LS_KEY = "binderclock_demo_v1";
+var state = null;
+
+function $(id){ return document.getElementById(id); }
+function esc(v){ return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function money(n){ return "$" + Number(n||0).toLocaleString("en-US"); }
+function toast(msg){ var t = $("toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(function(){ t.style.display = "none"; }, 3400); }
+function dISO(d){ var p = function(n){ return (n<10?"0":"") + n; }; return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate()); }
+function daysFromNow(n){ var d = new Date(); d.setDate(d.getDate()+n); return dISO(d); }
+function todayISO(){ return dISO(new Date()); }
+function diffDays(iso){ if(!iso) return null; var t = new Date(); t.setHours(0,0,0,0); var s = new Date(iso+"T00:00:00"); return Math.round((s - t)/86400000); }
+function fmtDate(iso){ if(!iso) return "—"; var d = new Date(iso+"T00:00:00"); return d.toLocaleDateString("en-US",{month:"short", day:"numeric", year:"numeric"}); }
+function plural(n, w){ return n + " " + w + (n===1?"":"s"); }
+function daysPhrase(d){ if(d===null) return "—"; if(d<0) return "expired " + plural(-d,"day") + " ago"; if(d===0) return "expires today"; return "in " + plural(d,"day"); }
+
+/* ---------- seed data (all fictional) ---------- */
+function C(vid, insurer, policy, lines, ai, waiver, holder){ return {vendorId:vid, insurer:insurer, policy:policy, lines:lines, ai:ai, waiver:waiver, holder:holder}; }
+function L(gl, auto, wc, umb){ var o = {}; if(gl) o.gl = gl; if(auto) o.auto = auto; if(wc) o.wc = wc; if(umb) o.umb = umb; return o; }
+function seedData(){
+  var vendors = [
+    {id:1,  name:"AquaFlow Plumbing",     trade:"Plumbing",       contact:"Dana Ruiz",   email:"office@aquaflowplumbing.com", agent:"Miller Insurance Group",   agentEmail:"certs@millerins.com",  projects:["p1","p3"], lastChase:null},
+    {id:2,  name:"VoltEdge Electric",     trade:"Electrical",     contact:"Sam Ortiz",   email:"sam@voltedgeelectric.com",    agent:"Harbor Insurance Agency",  agentEmail:"coi@harborins.com",    projects:["p1","p2"], lastChase:null},
+    {id:3,  name:"Summit Roofing Co",     trade:"Roofing",        contact:"Bill Karr",   email:"bill@summitroofingco.com",    agent:"Plains Insurance Brokers", agentEmail:"certs@plainsins.com",  projects:["p1"],      lastChase:null},
+    {id:4,  name:"Grand Lake HVAC",       trade:"HVAC",           contact:"Tina Moss",   email:"tina@grandlakehvac.com",      agent:"Miller Insurance Group",   agentEmail:"certs@millerins.com",  projects:["p2"],      lastChase:null},
+    {id:5,  name:"RedDirt Concrete",      trade:"Concrete",       contact:"Joe Pruitt",  email:"joe@reddirtconcrete.com",     agent:"Sooner Insurance Services",agentEmail:"docs@soonerins.com",   projects:["p1"],      lastChase:null},
+    {id:6,  name:"Timberline Framing",    trade:"Framing",        contact:"Alex Reed",   email:"alex@timberlineframing.com",  agent:"Harbor Insurance Agency",  agentEmail:"coi@harborins.com",    projects:["p2"],      lastChase:null},
+    {id:7,  name:"ProPaint Interiors",    trade:"Painting",       contact:"Maria Chen",  email:"maria@propaintinteriors.com",agent:"Plains Insurance Brokers", agentEmail:"certs@plainsins.com",  projects:["p3"],      lastChase:null},
+    {id:8,  name:"ClearView Glass",       trade:"Glass & Glazing",contact:"Pat Nolan",   email:"pat@clearviewglass.com",      agent:"Sooner Insurance Services",agentEmail:"docs@soonerins.com",   projects:["p3"],      lastChase:null},
+    {id:9,  name:"TerraScape Excavation", trade:"Excavation",     contact:"Chris Boyd",  email:"chris@terrascapeexc.com",     agent:"Miller Insurance Group",   agentEmail:"certs@millerins.com",  projects:["p2"],      lastChase:null},
+    {id:10, name:"Drywall Dynamics",      trade:"Drywall",        contact:"Kim Avery",   email:"kim@drywalldynamics.com",     agent:"Harbor Insurance Agency",  agentEmail:"coi@harborins.com",    projects:["p3"],      lastChase:null},
+    {id:11, name:"FloorCraft LLC",        trade:"Flooring",       contact:"Lee Tran",    email:"lee@floorcraftllc.com",       agent:"Plains Insurance Brokers", agentEmail:"certs@plainsins.com",  projects:["p1"],      lastChase:null},
+    {id:12, name:"MasonPro Builders",     trade:"Masonry",        contact:"Omar Haddad", email:"omar@masonprobuilders.com",   agent:"Sooner Insurance Services",agentEmail:"docs@soonerins.com",   projects:["p2"],      lastChase:null},
+    {id:13, name:"LakeSide Landscaping",  trade:"Landscaping",    contact:"Erin Wolf",   email:"erin@lakesidelandscaping.com", agent:"Miller Insurance Group",   agentEmail:"certs@millerins.com",  projects:["p2"],      lastChase:null},
+    {id:14, name:"SteelSpan Erectors",    trade:"Steel Erection", contact:"Ray Delgado", email:"ray@steelspanerectors.com",   agent:"Harbor Insurance Agency",  agentEmail:"coi@harborins.com",    projects:["p1","p3"], lastChase:null}
+  ];
+  var certs = [
+    C(1,"Prairie Casualty","PC-GL-10441", L({occ:1000000,agg:2000000,exp:daysFromNow(210)},{limit:1000000,exp:daysFromNow(210)},{exp:daysFromNow(210)},null), true,true,true),
+    C(1,"Prairie Casualty","PC-UMB-2210", L(null,null,null,{limit:1000000,exp:daysFromNow(210)}), false,false,true),
+    C(2,"Sentinel Mutual","SM-GL-77812", L({occ:1000000,agg:2000000,exp:daysFromNow(150)},{limit:1000000,exp:daysFromNow(150)},{exp:daysFromNow(150)},null), true,true,true),
+    C(2,"Sentinel Mutual","SM-UMB-77813", L(null,null,null,{limit:2000000,exp:daysFromNow(150)}), false,false,true),
+    C(3,"Heartland Indemnity","HI-GL-55201", L({occ:1000000,agg:2000000,exp:daysFromNow(-12)},{limit:1000000,exp:daysFromNow(90)},{exp:daysFromNow(90)},null), true,true,true),
+    C(4,"Prairie Casualty","PC-GL-20933", L({occ:1000000,agg:2000000,exp:daysFromNow(9)},{limit:1000000,exp:daysFromNow(9)},{exp:daysFromNow(9)},null), true,true,true),
+    C(5,"RedRiver Assurance","RR-GL-31007", L({occ:1000000,agg:2000000,exp:daysFromNow(120)},{limit:1000000,exp:daysFromNow(120)},{exp:daysFromNow(120)},null), true,false,true),
+    C(5,"RedRiver Assurance","RR-UMB-31008", L(null,null,null,{limit:1000000,exp:daysFromNow(120)}), false,false,true),
+    C(6,"Sentinel Mutual","SM-GL-90114", L({occ:1000000,agg:2000000,exp:daysFromNow(75)},{limit:1000000,exp:daysFromNow(75)},{exp:daysFromNow(75)},null), false,true,true),
+    C(7,"Heartland Indemnity","HI-GL-61002", L({occ:1000000,agg:2000000,exp:daysFromNow(300)},{limit:1000000,exp:daysFromNow(300)},{exp:daysFromNow(300)},null), true,true,true),
+    C(8,"Prairie Casualty","PC-GL-44771", L({occ:1000000,agg:2000000,exp:daysFromNow(60)},{limit:1000000,exp:daysFromNow(60)},{exp:daysFromNow(-30)},null), true,true,true),
+    C(9,"RedRiver Assurance","RR-GL-72556", L({occ:1000000,agg:2000000,exp:daysFromNow(45)},{limit:1000000,exp:daysFromNow(-5)},{exp:daysFromNow(45)},null), true,true,true),
+    C(11,"Sentinel Mutual","SM-GL-12890", L({occ:1000000,agg:2000000,exp:daysFromNow(180)},{limit:1000000,exp:daysFromNow(180)},{exp:daysFromNow(180)},null), true,true,true),
+    C(11,"Sentinel Mutual","SM-UMB-12891", L(null,null,null,{limit:2000000,exp:daysFromNow(180)}), false,false,true),
+    C(12,"Heartland Indemnity","HI-GL-83445", L({occ:1000000,agg:2000000,exp:daysFromNow(100)},{limit:1000000,exp:daysFromNow(100)},{exp:daysFromNow(22)},null), true,true,true),
+    C(13,"Prairie Casualty","PC-GL-66310", L({occ:1000000,agg:1000000,exp:daysFromNow(140)},{limit:1000000,exp:daysFromNow(140)},{exp:daysFromNow(140)},null), true,true,true),
+    C(14,"Sentinel Mutual","SM-GL-55019", L({occ:2000000,agg:4000000,exp:daysFromNow(260)},{limit:1000000,exp:daysFromNow(260)},{exp:daysFromNow(260)},null), true,true,true),
+    C(14,"Sentinel Mutual","SM-UMB-55020", L(null,null,null,{limit:5000000,exp:daysFromNow(260)}), false,false,true)
+  ];
+  var projects = [
+    {id:"p1", name:"Riverside Medical Office", meta:"Grove, OK · started Oct 2026"},
+    {id:"p2", name:"Grand Lake Marina Condos", meta:"Grand Lake, OK · started Sep 2026"},
+    {id:"p3", name:"Route 66 Retail Pad", meta:"Vinita, OK · starts Dec 2026"}
+  ];
+  return {
+    requirements:{glOcc:1000000, glAgg:2000000, auto:1000000, umb:0, wc:true, ai:true, waiver:true},
+    vendors:vendors, certs:certs, projects:projects, nextVendorId:15
+  };
+}
+function isPlainObject(x){ return !!x && typeof x === "object" && !Array.isArray(x); }
+function asStoredString(x){ return x === null || x === undefined ? "" : String(x); }
+function asNonNegativeNumber(x, fallback){ return typeof x === "number" && isFinite(x) && x >= 0 ? x : fallback; }
+function asPositiveInteger(x){ return typeof x === "number" && isFinite(x) && Math.floor(x) === x && x > 0 ? x : null; }
+function isValidDateString(x){
+  if(typeof x !== "string") return false;
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(x); if(!m) return false;
+  var year = Number(m[1]), month = Number(m[2]), day = Number(m[3]);
+  if(month < 1 || month > 12 || day < 1) return false;
+  var leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  var days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day <= days[month-1];
+}
+function sanitizeRequirements(r){
+  var clean = {glOcc:1000000, glAgg:2000000, auto:1000000, umb:0, wc:true, ai:true, waiver:true};
+  if(!isPlainObject(r)) return clean;
+  ["glOcc","glAgg","auto","umb"].forEach(function(key){ clean[key] = asNonNegativeNumber(r[key], clean[key]); });
+  ["wc","ai","waiver"].forEach(function(key){ clean[key] = typeof r[key] === "boolean" ? r[key] : clean[key]; });
+  return clean;
+}
+function sanitizeCertLines(lines){
+  var clean = {};
+  if(!isPlainObject(lines)) return clean;
+  function validLine(key){ return isPlainObject(lines[key]) && isValidDateString(lines[key].exp) ? lines[key] : null; }
+  var gl = validLine("gl");
+  if(gl) clean.gl = {occ:asNonNegativeNumber(gl.occ, 0), agg:asNonNegativeNumber(gl.agg, 0), exp:gl.exp};
+  var auto = validLine("auto");
+  if(auto) clean.auto = {limit:asNonNegativeNumber(auto.limit, 0), exp:auto.exp};
+  var wc = validLine("wc");
+  if(wc) clean.wc = {exp:wc.exp};
+  var umb = validLine("umb");
+  if(umb) clean.umb = {limit:asNonNegativeNumber(umb.limit, 0), exp:umb.exp};
+  return clean;
+}
+function sanitizeState(p){
+  var vendors = [], vendorIds = {}, seenVendorIds = {};
+  (Array.isArray(p.vendors) ? p.vendors : []).forEach(function(v){
+    if(!isPlainObject(v)) return;
+    var id = asPositiveInteger(v.id);
+    if(id === null || seenVendorIds[id]) return;
+    seenVendorIds[id] = true; vendorIds[id] = true;
+    var projects = [], seenProjects = {};
+    if(Array.isArray(v.projects)) v.projects.forEach(function(projectId){
+      if(typeof projectId !== "string") return;
+      var pid = projectId;
+      if(pid && !seenProjects[pid]){ seenProjects[pid] = true; projects.push(pid); }
+    });
+    var lastChase = null;
+    if(isPlainObject(v.lastChase) && isValidDateString(v.lastChase.date) && typeof v.lastChase.stage === "string") lastChase = {date:v.lastChase.date, stage:v.lastChase.stage};
+    vendors.push({id:id, name:asStoredString(v.name), trade:asStoredString(v.trade), contact:asStoredString(v.contact), email:asStoredString(v.email), agent:asStoredString(v.agent), agentEmail:asStoredString(v.agentEmail), projects:projects, lastChase:lastChase});
+  });
+  var projects = [], seenProjectIds = {};
+  (Array.isArray(p.projects) ? p.projects : []).forEach(function(project){
+    if(!isPlainObject(project)) return;
+    if(typeof project.id !== "string") return;
+    var id = project.id;
+    if(!id || seenProjectIds[id]) return;
+    seenProjectIds[id] = true;
+    projects.push({id:id, name:asStoredString(project.name), meta:asStoredString(project.meta)});
+  });
+  var certs = [];
+  (Array.isArray(p.certs) ? p.certs : []).forEach(function(c){
+    if(!isPlainObject(c)) return;
+    var vendorId = asPositiveInteger(c.vendorId);
+    if(vendorId === null || !vendorIds[vendorId]) return;
+    certs.push({vendorId:vendorId, insurer:asStoredString(c.insurer), policy:asStoredString(c.policy), lines:sanitizeCertLines(c.lines), ai:typeof c.ai === "boolean" ? c.ai : false, waiver:typeof c.waiver === "boolean" ? c.waiver : false, holder:typeof c.holder === "boolean" ? c.holder : false});
+  });
+  var maxVendorId = vendors.reduce(function(max, v){ return Math.max(max, v.id); }, 0);
+  var nextVendorId = asPositiveInteger(p.nextVendorId);
+  if(nextVendorId === null || nextVendorId <= maxVendorId) nextVendorId = maxVendorId + 1;
+  return {requirements:sanitizeRequirements(p.requirements), vendors:vendors, certs:certs, projects:projects, nextVendorId:nextVendorId};
+}
+function load(){
+  try{ var raw = localStorage.getItem(LS_KEY); if(raw){ var p = JSON.parse(raw); if(isPlainObject(p) && Array.isArray(p.vendors) && Array.isArray(p.certs) && Array.isArray(p.projects)){ var healed = sanitizeState(p); save(healed); return healed; } } }catch(e){}
+  var s = seedData(); save(s); return s;
+}
+function save(s){ try{ localStorage.setItem(LS_KEY, JSON.stringify(s||state)); }catch(e){} }
+
+/* ---------- compliance engine ---------- */
+function vendorCerts(vid){ return state.certs.filter(function(c){ return c.vendorId===vid; }); }
+function bestLine(vid, line){
+  var best = null;
+  vendorCerts(vid).forEach(function(c){ var e = c.lines[line]; if(e && (!best || e.exp > best.exp)) best = e; });
+  return best;
+}
+var LINE_LABEL = {gl:"General liability", auto:"Auto liability", wc:"Workers' compensation", umb:"Umbrella"};
+function checkVendor(v){
+  var req = state.requirements, certs = vendorCerts(v.id), defs = [], expired = false;
+  if(!certs.length) return {status:"missing", defs:["No certificate of insurance on file."], earliest:null, earliestDays:null, earliestLine:null};
+  function lineCheck(line, minLimit, limitOf){
+    var e = bestLine(v.id, line);
+    if(!e){ defs.push("No " + LINE_LABEL[line].toLowerCase() + " coverage on file."); return; }
+    var d = diffDays(e.exp);
+    if(d < 0){ expired = true; defs.push(LINE_LABEL[line] + " expired " + plural(-d,"day") + " ago (" + fmtDate(e.exp) + ")."); }
+    if(minLimit > 0 && limitOf(e) < minLimit){ defs.push(LINE_LABEL[line] + " limit " + money(limitOf(e)) + " is below your " + money(minLimit) + " minimum."); }
+  }
+  lineCheck("gl", req.glOcc, function(e){ return e.occ||0; });
+  /* GL aggregate checked separately for a clearer message */
+  (function(){ var e = bestLine(v.id, "gl"); if(e && req.glAgg > 0 && (e.agg||0) < req.glAgg){ var msg = "General liability aggregate " + money(e.agg||0) + " is below your " + money(req.glAgg) + " minimum."; if(defs.indexOf(msg) < 0 && !defs.some(function(x){ return x.indexOf("aggregate") >= 0; })) defs.push(msg); } })();
+  if(req.auto > 0 || bestLine(v.id,"auto")) lineCheck("auto", req.auto, function(e){ return e.limit||0; });
+  if(req.wc){ var w = bestLine(v.id, "wc"); if(!w) defs.push("No workers' compensation certificate on file."); else { var wd = diffDays(w.exp); if(wd < 0){ expired = true; defs.push("Workers' compensation expired " + plural(-wd,"day") + " ago (" + fmtDate(w.exp) + ")."); } } }
+  if(req.umb > 0) lineCheck("umb", req.umb, function(e){ return e.limit||0; });
+  if(req.ai && !certs.some(function(c){ return c.ai; })) defs.push("Not named as additional insured — the endorsement is missing.");
+  if(req.waiver && !certs.some(function(c){ return c.waiver; })) defs.push("Waiver of subrogation missing.");
+  if(!certs.some(function(c){ return c.holder; })) defs.push("Certificate holder name does not match your legal name.");
+  var earliest = null, earliestLine = null;
+  ["gl","auto","wc","umb"].forEach(function(line){ var e = bestLine(v.id, line); if(e && (earliest === null || e.exp < earliest)){ earliest = e.exp; earliestLine = LINE_LABEL[line]; } });
+  var ed = earliest ? diffDays(earliest) : null;
+  var status;
+  if(expired) status = "expired";
+  else if(defs.length) status = "deficient";
+  else if(ed !== null && ed <= 30) status = "expiring";
+  else status = "compliant";
+  return {status:status, defs:defs, earliest:earliest, earliestDays:ed, earliestLine:earliestLine};
+}
+function allChecks(){ var m = {}; state.vendors.forEach(function(v){ m[v.id] = checkVendor(v); }); return m; }
+function statusPill(s){ return '<span class="pill ' + s + '">' + {compliant:"Compliant", expiring:"Expiring", expired:"Expired", deficient:"Deficient", missing:"Missing cert"}[s] + "</span>"; }
+
+/* ---------- views ---------- */
+function showView(name){
+  var panels = document.querySelectorAll("section.panel");
+  for(var i=0;i<panels.length;i++){ panels[i].classList.toggle("active", panels[i].id === "view-" + name); }
+  var btns = document.querySelectorAll("#mainNav button");
+  for(var j=0;j<btns.length;j++){ btns[j].classList.toggle("active", btns[j].getAttribute("data-view") === name); }
+}
+var navBtns = document.querySelectorAll("#mainNav button");
+for(var n=0;n<navBtns.length;n++){ navBtns[n].addEventListener("click", function(){ showView(this.getAttribute("data-view")); }); }
+
+function renderDashboard(){
+  var checks = allChecks(), total = state.vendors.length;
+  var counts = {compliant:0, expiring:0, expired:0, deficient:0, missing:0};
+  state.vendors.forEach(function(v){ counts[checks[v.id].status]++; });
+  $("statPct").textContent = total ? Math.round(counts.compliant/total*100) + "%" : "—";
+  $("statCompliant").textContent = counts.compliant;
+  $("statExpiring").textContent = counts.expiring;
+  $("statExpired").textContent = counts.expired + counts.missing;
+  $("statDeficient").textContent = counts.deficient;
+  $("barVendorCount").textContent = total;
+  $("barToday").textContent = fmtDate(todayISO());
+  var blocked = counts.expired + counts.missing + counts.deficient;
+  if(!total){ $("riskBanner").innerHTML = "No vendors yet. Add your first sub on the Vendors tab."; }
+  else if(blocked){ $("riskBanner").innerHTML = "<b>" + blocked + " of " + total + " vendors can't step on site</b> — " + counts.expired + " expired, " + counts.missing + " missing a certificate, " + counts.deficient + " deficient. If one of them gets hurt or causes damage tomorrow, their gap becomes Lakeside Builders' problem."; }
+  else { $("riskBanner").innerHTML = "<b>Everyone is compliant.</b> Keep the clocks running — the next expiration is already counting down."; }
+  var exp = state.vendors.filter(function(v){ return checks[v.id].status === "expiring"; }).sort(function(a,b){ return checks[a.id].earliestDays - checks[b.id].earliestDays; });
+  $("expiringList").innerHTML = exp.length ? exp.map(function(v){ var c = checks[v.id]; return "<li><b>" + esc(v.name) + "</b> (" + esc(v.trade) + ") — " + c.earliestLine + " expires <span class=\"" + (c.earliestDays<=7?"clock-red":"clock-amber") + "\">" + daysPhrase(c.earliestDays) + "</span> (" + fmtDate(c.earliest) + ")</li>"; }).join("") : "<li>Nothing expires in the next 30 days.</li>";
+  var blk = state.vendors.filter(function(v){ return ["expired","missing","deficient"].indexOf(checks[v.id].status) >= 0; });
+  $("blockedList").innerHTML = blk.length ? blk.map(function(v){ var c = checks[v.id]; return "<li><b>" + esc(v.name) + "</b> (" + esc(v.trade) + ") — " + esc(c.defs[0] || "") + "</li>"; }).join("") : "<li>Nobody is blocked. Every vendor is cleared for site.</li>";
+}
+
+function renderVendors(){
+  var checks = allChecks();
+  var q = $("searchVendors").value.trim().toLowerCase(), f = $("filterStatus").value;
+  var rows = state.vendors.filter(function(v){
+    if(f !== "all" && checks[v.id].status !== f) return false;
+    if(q && (v.name + " " + v.trade).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+  $("vendorBody").innerHTML = rows.map(function(v){ var c = checks[v.id];
+    return "<tr><td><b>" + esc(v.name) + "</b><br><span style=\"color:var(--mut); font-size:12.5px;\">" + esc(v.contact || "") + (v.email ? " · " + esc(v.email) : "") + "</span></td>" +
+      "<td>" + esc(v.trade) + "</td><td>" + statusPill(c.status) + "</td>" +
+      "<td>" + (c.earliest ? fmtDate(c.earliest) + "<br><span style=\"font-size:12.5px; color:var(--mut);\">" + daysPhrase(c.earliestDays) + "</span>" : "—") + "</td>" +
+      "<td>" + esc(v.agent || "—") + (v.agentEmail ? "<br><span style=\"font-size:12.5px; color:var(--mut);\">" + esc(v.agentEmail) + "</span>" : "") + "</td>" +
+      "<td><button class=\"btn small\" data-act=\"intake\" data-id=\"" + v.id + "\">Log cert</button><button class=\"btn small secondary\" data-act=\"request\" data-id=\"" + v.id + "\">Request COI</button><button class=\"btn small danger\" data-act=\"delete\" data-id=\"" + v.id + "\">Delete</button></td></tr>";
+  }).join("");
+  $("vendorEmpty").style.display = rows.length ? "none" : "block";
+  var btns = document.querySelectorAll("#vendorBody button");
+  for(var i=0;i<btns.length;i++){ btns[i].addEventListener("click", onVendorAction); }
+}
+function onVendorAction(){
+  var id = Number(this.getAttribute("data-id")), act = this.getAttribute("data-act");
+  var v = state.vendors.find(function(x){ return x.id === id; }); if(!v) return;
+  if(act === "intake"){ $("inVendor").value = String(id); showView("intake"); }
+  if(act === "request"){ showView("chase"); toast("Chase card for " + v.name + " is in the queue — email is written and ready to copy."); }
+  if(act === "delete"){
+    if(!confirm("Delete " + v.name + " and their certificates from the roster? This cannot be undone.")) return;
+    state.vendors = state.vendors.filter(function(x){ return x.id !== id; });
+    state.certs = state.certs.filter(function(c){ return c.vendorId !== id; });
+    save(); renderAll(); toast(v.name + " deleted.");
+  }
+}
+
+function fillRequirementsForm(){
+  var r = state.requirements;
+  $("reqGlOcc").value = r.glOcc; $("reqGlAgg").value = r.glAgg; $("reqAuto").value = r.auto; $("reqUmb").value = r.umb;
+  $("reqWc").checked = !!r.wc; $("reqAi").checked = !!r.ai; $("reqWaiver").checked = !!r.waiver;
+}
+$("reqSaveBtn").addEventListener("click", function(){
+  function num(id){ var n = Number($(id).value); return isFinite(n) && n > 0 ? n : 0; }
+  state.requirements = {glOcc:num("reqGlOcc"), glAgg:num("reqGlAgg"), auto:num("reqAuto"), umb:num("reqUmb"), wc:$("reqWc").checked, ai:$("reqAi").checked, waiver:$("reqWaiver").checked};
+  save(); renderAll(); toast("Requirements saved — every vendor re-checked.");
+});
+
+$("searchVendors").addEventListener("input", renderVendors);
+$("filterStatus").addEventListener("change", renderVendors);
+
+$("nvAddBtn").addEventListener("click", function(){
+  var name = $("nvName").value.trim();
+  if(!name){ $("nvErr").textContent = "Give the vendor a company name first — that's the one thing we can't guess."; $("nvErr").style.display = "block"; return; }
+  $("nvErr").style.display = "none";
+  var v = {id: state.nextVendorId++, name:name, trade:$("nvTrade").value, contact:$("nvContact").value.trim(), email:$("nvEmail").value.trim(), agent:$("nvAgent").value.trim(), agentEmail:$("nvAgentEmail").value.trim(), projects:[], lastChase:null};
+  state.vendors.push(v); save(); renderAll();
+  ["nvName","nvContact","nvEmail","nvAgent","nvAgentEmail"].forEach(function(id){ $(id).value = ""; });
+  toast(name + " added — no certificate on file yet, so they're in the chase queue.");
+});
+
+/* CSV roster import (§5: friendly errors, dedupe) */
+function parseCsv(text){
+  var rows = [], row = [], cur = "", inQ = false;
+  for(var i=0;i<text.length;i++){ var ch = text[i];
+    if(inQ){ if(ch === '"'){ if(text[i+1] === '"'){ cur += '"'; i++; } else inQ = false; } else cur += ch; }
+    else if(ch === '"') inQ = true;
+    else if(ch === ","){ row.push(cur); cur = ""; }
+    else if(ch === "\n" || ch === "\r"){ if(ch === "\r" && text[i+1] === "\n") i++; row.push(cur); cur = ""; if(row.length > 1 || row[0] !== "") rows.push(row); row = []; }
+    else cur += ch;
+  }
+  row.push(cur); if(row.length > 1 || row[0] !== "") rows.push(row);
+  return rows;
+}
+$("csvFile").addEventListener("change", function(){
+  var file = this.files && this.files[0]; if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    $("importErr").style.display = "none"; $("importMsg").style.display = "none";
+    try{
+      var rows = parseCsv(String(reader.result || ""));
+      if(rows.length < 2) throw new Error("empty");
+      var head = rows[0].map(function(h){ return h.trim().toLowerCase(); });
+      var ni = head.indexOf("name"); if(ni < 0) throw new Error("no-name");
+      function col(r, key){ var ix = head.indexOf(key); return ix >= 0 ? (r[ix] || "").trim() : ""; }
+      var added = 0, skipped = 0;
+      var existing = {}; state.vendors.forEach(function(v){ existing[v.name.toLowerCase()] = true; });
+      for(var i=1;i<rows.length;i++){ var r = rows[i]; var nm = (r[ni] || "").trim();
+        if(!nm || existing[nm.toLowerCase()]){ skipped++; continue; }
+        existing[nm.toLowerCase()] = true;
+        state.vendors.push({id: state.nextVendorId++, name:nm, trade: col(r,"trade") || "Other", contact: col(r,"contact"), email: col(r,"email"), agent: col(r,"agent"), agentEmail: col(r,"agent_email"), projects:[], lastChase:null});
+        added++;
+      }
+      save(); renderAll();
+      $("importMsg").textContent = "Imported " + added + " vendor" + (added===1?"":"s") + " (" + skipped + " skipped — already listed or missing a name).";
+      $("importMsg").style.display = "block";
+    }catch(e){
+      $("importErr").textContent = "That file doesn't look like a roster CSV. It needs a header row with at least a \"name\" column — name, trade, contact, email, agent, agent_email. Nothing was imported.";
+      $("importErr").style.display = "block";
+    }
+    $("csvFile").value = "";
+  };
+  reader.readAsText(file);
+});
+
+/* ---------- intake ---------- */
+function renderIntakeOptions(){
+  var sel = $("inVendor"), cur = sel.value;
+  sel.innerHTML = state.vendors.map(function(v){ return "<option value=\"" + v.id + "\">" + esc(v.name) + " — " + esc(v.trade) + "</option>"; }).join("");
+  if(cur && state.vendors.some(function(v){ return String(v.id) === cur; })) sel.value = cur;
+}
+$("inDemoFill").addEventListener("click", function(){
+  rearmSaveBtn();
+  $("inInsurer").value = "Hartford Mutual (sample)"; $("inPolicy").value = "GL-2026-8841";
+  $("inGlOcc").value = 1000000; $("inGlAgg").value = 2000000; $("inGlExp").value = daysFromNow(365);
+  $("inAutoLimit").value = 1000000; $("inAutoExp").value = daysFromNow(365);
+  $("inWcExp").value = daysFromNow(365); $("inUmbLimit").value = 1000000; $("inUmbExp").value = daysFromNow(365);
+  $("inAi").checked = true; $("inWaiver").checked = true; $("inHolder").checked = true;
+  $("inErr").style.display = "none";
+  toast("Sample certificate filled — review it and save.");
+});
+$("inSaveBtn").addEventListener("click", function(){
+  var vid = Number($("inVendor").value);
+  var v = state.vendors.find(function(x){ return x.id === vid; });
+  function err(m){ $("inErr").textContent = m; $("inErr").style.display = "block"; }
+  if(!v){ err("Pick the vendor this certificate belongs to first."); return; }
+  if(!$("inInsurer").value.trim()){ err("Enter the insurance company from the certificate."); return; }
+  var lines = {};
+  if($("inGlExp").value) lines.gl = {occ:Number($("inGlOcc").value)||0, agg:Number($("inGlAgg").value)||0, exp:$("inGlExp").value};
+  if($("inAutoExp").value) lines.auto = {limit:Number($("inAutoLimit").value)||0, exp:$("inAutoExp").value};
+  if($("inWcExp").value) lines.wc = {exp:$("inWcExp").value};
+  if($("inUmbExp").value) lines.umb = {limit:Number($("inUmbLimit").value)||0, exp:$("inUmbExp").value};
+  if(!Object.keys(lines).length){ err("Enter at least one policy expiration date from the certificate — the clock needs a date to count down."); return; }
+  $("inErr").style.display = "none";
+  state.certs.push({vendorId:vid, insurer:$("inInsurer").value.trim(), policy:$("inPolicy").value.trim(), lines:lines, ai:$("inAi").checked, waiver:$("inWaiver").checked, holder:$("inHolder").checked});
+  save(); renderAll();
+  var c = checkVendor(v), req = state.requirements;
+  function line(ok, label){ return "<li><span class=\"" + (ok ? "pass" : "fail") + "\">" + (ok ? "✓" : "✗") + "</span> " + label + "</li>"; }
+  var gl = bestLine(vid, "gl"), auto = bestLine(vid, "auto"), wc = bestLine(vid, "wc"), umb = bestLine(vid, "umb");
+  var html = "<h3 style=\"color:var(--navy); margin-bottom:8px;\">Checklist for " + esc(v.name) + " — now " + statusPill(c.status) + "</h3><ul>" +
+    line(!!gl, "General liability on file" + (gl ? " — " + money(gl.occ) + " / " + money(gl.agg) + ", expires " + fmtDate(gl.exp) : "")) +
+    line(!gl || (gl.occ >= req.glOcc && gl.agg >= req.glAgg), "GL limits meet your minimums (" + money(req.glOcc) + " / " + money(req.glAgg) + ")") +
+    line(!req.auto || (!!auto && auto.limit >= req.auto), "Auto liability meets your minimum" + (auto ? " — " + money(auto.limit) : "")) +
+    line(!req.wc || !!wc, "Workers' compensation on file" + (wc ? " — expires " + fmtDate(wc.exp) : "")) +
+    line(req.umb <= 0 || (!!umb && umb.limit >= req.umb), req.umb > 0 ? "Umbrella meets your minimum" : "Umbrella not required by your settings") +
+    line(!req.ai || vendorCerts(vid).some(function(x){ return x.ai; }), "Additional insured endorsement") +
+    line(!req.waiver || vendorCerts(vid).some(function(x){ return x.waiver; }), "Waiver of subrogation") +
+    line(vendorCerts(vid).some(function(x){ return x.holder; }), "Certificate holder name matches") +
+    "</ul>" + (c.defs.length ? "<p style=\"margin-top:8px;\"><b>Still open:</b> " + c.defs.map(esc).join(" ") + "</p>" : "<p style=\"margin-top:8px;\">Nothing open — this vendor is fully compliant.</p>");
+  $("inScore").innerHTML = html; $("inScore").style.display = "block";
+  toast("Certificate saved for " + v.name + " and checked.");
+  var sb = $("inSaveBtn"); sb.disabled = true; sb.textContent = "Saved ✓ — edit any field to log another cert";
+});
+function rearmSaveBtn(){ var sb = $("inSaveBtn"); if(sb && sb.disabled){ sb.disabled = false; sb.textContent = "Save certificate & check it"; } }
+document.querySelectorAll("#view-intake input, #view-intake select").forEach(function(el){ el.addEventListener("input", rearmSaveBtn); el.addEventListener("change", rearmSaveBtn); });
+
+/* ---------- chase queue ---------- */
+function chaseStage(v, c){
+  if(c.status === "missing") return "Initial request — no cert on file";
+  if(c.status === "expired") return "Lapsed-policy chase — send today";
+  if(c.status === "deficient") return "Correction request — send today";
+  var d = c.earliestDays;
+  if(d > 14) return "30-day notice"; if(d > 7) return "14-day notice"; if(d > 2) return "7-day notice"; return "2-day final notice";
+}
+function chaseEmail(v, c){
+  var stage = chaseStage(v, c);
+  var toName = v.agent || v.contact || "there";
+  var defs = c.defs.map(function(d){ return "  • " + d; }).join("\n");
+  return "Subject: " + stage + " — certificate of insurance for " + v.name + "\n\n" +
+    "Hi " + toName + ",\n\n" +
+    "Lakeside Builders LLC is missing current insurance paperwork for " + v.name + " (" + v.trade + "). Here is exactly what is open:\n\n" + defs + "\n\n" +
+    "Please send the renewed certificate — or upload it here, no account or password needed:\nhttps://binderclock.example/upload/DEMO-" + v.id + "\n\n" +
+    "Our requirements: general liability " + money(state.requirements.glOcc) + " per occurrence / " + money(state.requirements.glAgg) + " aggregate" + (state.requirements.ai ? ", with Lakeside Builders LLC named as additional insured" : "") + (state.requirements.waiver ? ", waiver of subrogation in our favor" : "") + ".\n\n" +
+    "Until this is current, " + v.name + " can't be cleared for site work — nobody wants that call on a Monday.\n\nThanks,\nLakeside Builders LLC\n(via BinderClock — demo email, copy it into your own mail to send)";
+}
+function renderChase(){
+  var checks = allChecks();
+  var list = state.vendors.filter(function(v){ return checks[v.id].status !== "compliant"; });
+  list.sort(function(a, b){ var ca = checks[a.id], cb = checks[b.id]; var da = ca.status === "missing" ? -9999 : (ca.earliestDays === null ? 9999 : ca.earliestDays); var db = cb.status === "missing" ? -9999 : (cb.earliestDays === null ? 9999 : cb.earliestDays); return da - db; });
+  $("chaseCount").textContent = list.length ? list.length + " vendor" + (list.length===1?"":"s") + " owe you paperwork" : "Nobody owes you paperwork";
+  $("chaseEmpty").style.display = list.length ? "none" : "block";
+  $("chaseWrap").innerHTML = list.map(function(v){ var c = checks[v.id];
+    var cls = c.status === "expiring" ? "amber" : (c.status === "missing" ? "grey" : "");
+    var toLine = v.agentEmail ? "To: " + esc(v.agent) + " &lt;" + esc(v.agentEmail) + "&gt; · cc " + esc(v.contact) + (v.email ? " &lt;" + esc(v.email) + "&gt;" : "") : "To: " + esc(v.contact) + (v.email ? " &lt;" + esc(v.email) + "&gt;" : "");
+    return "<div class=\"chasecard " + cls + "\" data-vid=\"" + v.id + "\"><h3>" + esc(v.name) + " " + statusPill(c.status) + "</h3>" +
+      "<div class=\"meta\">" + toLine + "<br>Next step: <b>" + esc(chaseStage(v, c)) + "</b>" + (v.lastChase ? " · Last chased " + fmtDate(v.lastChase.date) + " (" + esc(v.lastChase.stage) + ")" : " · Not chased yet") + "</div>" +
+      "<ul class=\"defs\">" + c.defs.map(function(d){ return "<li>" + esc(d) + "</li>"; }).join("") + "</ul>" +
+      "<div class=\"magiclink\">No-login upload link for the agent: https://binderclock.example/upload/DEMO-" + v.id + " <span style=\"color:var(--mut);\">(demo link — nothing uploads in this demo)</span></div>" +
+      "<textarea rows=\"11\" class=\"chase-email\">" + esc(chaseEmail(v, c)) + "</textarea>" +
+      "<div style=\"margin-top:10px;\"><button class=\"btn small\" data-chase=\"copy\" data-id=\"" + v.id + "\">Copy email</button><button class=\"btn small secondary\" data-chase=\"mark\" data-id=\"" + v.id + "\">Mark as chased</button></div></div>";
+  }).join("");
+  var btns = document.querySelectorAll("#chaseWrap button");
+  for(var i=0;i<btns.length;i++){ btns[i].addEventListener("click", onChaseAction); }
+}
+function onChaseAction(){
+  var id = Number(this.getAttribute("data-id")), act = this.getAttribute("data-chase");
+  var v = state.vendors.find(function(x){ return x.id === id; }); if(!v) return;
+  var card = this.closest(".chasecard");
+  if(act === "copy"){
+    var ta = card.querySelector(".chase-email"); ta.select();
+    function done(){ toast("Chase email copied — paste it into your mail to " + (v.agent || v.contact) + "."); }
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(ta.value).then(done, function(){ try{ document.execCommand("copy"); }catch(e){} done(); }); }
+    else { try{ document.execCommand("copy"); }catch(e){} done(); }
+  }
+  if(act === "mark"){
+    var c = checkVendor(v);
+    v.lastChase = {date: todayISO(), stage: chaseStage(v, c)};
+    save(); renderChase(); toast("Marked — " + v.name + " chased today. The queue re-sorted itself.");
+  }
+}
+
+/* ---------- projects ---------- */
+function renderProjects(){
+  var checks = allChecks();
+  $("projectWrap").innerHTML = state.projects.map(function(p){
+    var subs = state.vendors.filter(function(v){ return v.projects.indexOf(p.id) >= 0; });
+    var cleared = subs.filter(function(v){ return checks[v.id].status === "compliant" || checks[v.id].status === "expiring"; }).length;
+    var rows = subs.map(function(v){ var c = checks[v.id]; return "<tr><td><b>" + esc(v.name) + "</b></td><td>" + esc(v.trade) + "</td><td>" + statusPill(c.status) + "</td><td>" + (c.earliest ? fmtDate(c.earliest) : "—") + "</td></tr>"; }).join("");
+    var assign = state.vendors.map(function(v){ var on = v.projects.indexOf(p.id) >= 0; return "<label class=\"assignrow\"><input type=\"checkbox\" class=\"assign\" data-proj=\"" + p.id + "\" data-vendor=\"" + v.id + "\"" + (on ? " checked" : "") + "> " + esc(v.name) + " <span style=\"color:var(--mut);\">(" + esc(v.trade) + ")</span></label>"; }).join("");
+    return "<div class=\"projcard\"><h3>" + esc(p.name) + "</h3><div class=\"meta\">" + esc(p.meta) + " · <b>" + cleared + " of " + subs.length + " subs cleared for site</b></div>" +
+      (subs.length ? "<div class=\"tablewrap\"><table><thead><tr><th>Sub</th><th>Trade</th><th>Status</th><th>Earliest expiry</th></tr></thead><tbody>" + rows + "</tbody></table></div>" : "<p style=\"color:var(--mut);\">No subs assigned yet — tick them below.</p>") +
+      "<details style=\"margin-top:12px;\"><summary>Edit this project's roster</summary><div style=\"margin-top:8px;\">" + assign + "</div></details></div>";
+  }).join("");
+  var boxes = document.querySelectorAll(".assign");
+  for(var i=0;i<boxes.length;i++){ (function(box){ box.addEventListener("change", function(){
+    var v = state.vendors.find(function(x){ return x.id === Number(box.getAttribute("data-vendor")); }); if(!v) return;
+    var pid = box.getAttribute("data-proj");
+    if(box.checked){ if(v.projects.indexOf(pid) < 0) v.projects.push(pid); }
+    else { v.projects = v.projects.filter(function(x){ return x !== pid; }); }
+    save(); renderProjects();
+  }); })(boxes[i]); }
+}
+
+/* ---------- audit packet ---------- */
+function auditRows(){
+  var checks = allChecks();
+  return state.vendors.map(function(v){ var c = checks[v.id];
+    var gl = bestLine(v.id, "gl"), auto = bestLine(v.id, "auto"), wc = bestLine(v.id, "wc"), umb = bestLine(v.id, "umb");
+    return {vendor:v.name, trade:v.trade, status:c.status, earliest:c.earliest || "", days:c.earliestDays,
+      glOcc: gl ? gl.occ : "", glAgg: gl ? gl.agg : "", glExp: gl ? gl.exp : "",
+      auto: auto ? auto.limit : "", autoExp: auto ? auto.exp : "", wcExp: wc ? wc.exp : "", umb: umb ? umb.limit : "",
+      ai: vendorCerts(v.id).some(function(x){ return x.ai; }) ? "Yes" : "No",
+      waiver: vendorCerts(v.id).some(function(x){ return x.waiver; }) ? "Yes" : "No",
+      defs: c.defs.join(" ")};
+  });
+}
+$("exportCsvBtn").addEventListener("click", function(){
+  function q(x){ return '"' + String(x==null?"":x).replace(/"/g,'""') + '"'; }
+  var head = ["Vendor","Trade","Status","Earliest expiry","Days to earliest expiry","GL each occurrence","GL aggregate","GL expiry","Auto limit","Auto expiry","Workers comp expiry","Umbrella limit","Additional insured","Waiver of subrogation","Open deficiencies"];
+  var lines = [head.map(q).join(",")];
+  auditRows().forEach(function(r){ lines.push([r.vendor, r.trade, r.status, r.earliest, r.days, r.glOcc, r.glAgg, r.glExp, r.auto, r.autoExp, r.wcExp, r.umb, r.ai, r.waiver, r.defs].map(q).join(",")); });
+  var blob = new Blob([lines.join("\n")], {type:"text/csv"});
+  var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "binderclock-audit-packet.csv"; document.body.appendChild(a); a.click(); a.remove();
+  toast("Audit packet CSV downloaded — every vendor, every date, every gap.");
+});
+$("printPacketBtn").addEventListener("click", function(){
+  var rows = auditRows();
+  var html = "<h2>BinderClock audit packet — Lakeside Builders LLC</h2><p>Generated " + fmtDate(todayISO()) + " · Fictional demo data</p><table><tr><th>Vendor</th><th>Trade</th><th>Status</th><th>Earliest expiry</th><th>Open deficiencies</th></tr>" +
+    rows.map(function(r){ return "<tr><td>" + esc(r.vendor) + "</td><td>" + esc(r.trade) + "</td><td>" + esc(r.status) + "</td><td>" + esc(r.earliest ? fmtDate(r.earliest) : "—") + "</td><td>" + esc(r.defs || "—") + "</td></tr>"; }).join("") + "</table>" + (rows.length ? "" : "<p>No vendors on the roster yet.</p>");
+  $("printArea").innerHTML = html; window.print();
+});
+$("dashVendorsBtn").addEventListener("click", function(){ showView("vendors"); });
+$("dashChaseBtn").addEventListener("click", function(){ showView("chase"); });
+$("dashIntakeBtn").addEventListener("click", function(){ showView("intake"); });
+
+/* ---------- pilot ---------- */
+function pilotGate(){ $("pilotSubmit").disabled = !$("pilotTerms").checked; }
+$("pilotTerms").addEventListener("change", pilotGate);
+$("pilotSubmit").addEventListener("click", function(){
+  var subject = "BinderClock pilot request — " + ($("pilotCompany").value.trim() || "Catch-Up Audit");
+  var body = "Hi BinderClock team,\n\nI'd like the $249 Catch-Up Audit pilot.\n\nName: " + $("pilotName").value.trim() + "\nCompany: " + $("pilotCompany").value.trim() + "\nEmail: " + $("pilotEmail").value.trim() + "\nSubs/vendors on our roster: " + ($("pilotSubs").value || "not sure yet") + "\n\nI understand BinderClock prepares the chase and the compliance log from the roster I provide, I stay the account holder, and nothing is billed until the pilot is confirmed by email.";
+  window.location.href = "mailto:whitewolfbackoffice@gmail.com?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+});
+
+/* ---------- data controls ---------- */
+$("resetDataBtn").addEventListener("click", function(){ state = seedData(); save(); fillRequirementsForm(); renderAll(); toast("Demo data reset — the fictional Lakeside Builders roster is back."); });
+$("clearDataBtn").addEventListener("click", function(){
+  if(!confirm("Clear all vendors and certificates? The app will be empty (requirements and projects stay).")) return;
+  state.vendors = []; state.certs = []; save(); renderAll(); toast("Cleared — the roster is empty.");
+});
+
+/* ---------- voice entry (§9a: one press to listening) ---------- */
+function dictate(targetId){
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ toast("Voice isn't available on this device/browser — typing works as always"); return; }
+  var rec;
+  try{ rec = new SR(); }catch(e){ toast("Voice isn't available on this device/browser — typing works as always"); return; }
+  rec.lang = "en-US"; rec.interimResults = false; rec.maxAlternatives = 1;
+  rec.onresult = function(ev){ var t = ev.results[0][0].transcript || ""; var el = $(targetId); if(el){ el.value = t; el.dispatchEvent(new Event("input", {bubbles:true})); el.dispatchEvent(new Event("change", {bubbles:true})); } };
+  rec.onerror = function(){ toast("Didn't catch that — try again or type it"); };
+  rec.start();
+}
+var micBtns = document.querySelectorAll("[data-mic]");
+for(var m=0;m<micBtns.length;m++){ micBtns[m].addEventListener("click", function(){ dictate(this.getAttribute("data-mic")); }); }
+
+/* ---------- boot ---------- */
+function renderAll(){ renderDashboard(); renderVendors(); renderIntakeOptions(); renderChase(); renderProjects(); }
+state = load();
+fillRequirementsForm();
+renderAll();
+</script>
+</body>
+</html>
